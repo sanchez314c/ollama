@@ -15,6 +15,12 @@ func (m Linear) Forward(x *Tensor) *Tensor {
 	return x.Matmul(w)
 }
 
+func (m Linear) Gather(x, lhs, rhs *Tensor, sorted bool) *Tensor {
+	w := m.Weight.Transpose(0, 2, 1)
+	// TODO: bias
+	return x.GatherMM(w, lhs, rhs, sorted)
+}
+
 type Embedding struct {
 	Weight Tensor `weight:"weight"`
 }

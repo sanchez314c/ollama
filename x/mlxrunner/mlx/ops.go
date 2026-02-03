@@ -37,6 +37,12 @@ func (t *Tensor) ArgpartitionAxis(kth int, axis int) *Tensor {
 	return out
 }
 
+func (t *Tensor) ArgsortAxis(axis int) *Tensor {
+	out := New("ARGSORT_AXIS", t)
+	C.mlx_argsort_axis(&out.ctx, t.ctx, C.int(axis), DefaultStream().ctx)
+	return out
+}
+
 func (t *Tensor) AsType(dtype DType) *Tensor {
 	out := New("AS_TYPE", t)
 	C.mlx_astype(&out.ctx, t.ctx, C.mlx_dtype(dtype), DefaultStream().ctx)
@@ -80,9 +86,39 @@ func (t *Tensor) Concatenate(axis int, others ...*Tensor) *Tensor {
 	return out
 }
 
+func (t *Tensor) Divide(other *Tensor) *Tensor {
+	out := New("DIVIDE", t, other)
+	C.mlx_divide(&out.ctx, t.ctx, other.ctx, DefaultStream().ctx)
+	return out
+}
+
 func (t *Tensor) ExpandDims(axis int) *Tensor {
 	out := New("EXPAND_DIMS", t)
 	C.mlx_expand_dims(&out.ctx, t.ctx, C.int(axis), DefaultStream().ctx)
+	return out
+}
+
+func (t *Tensor) Flatten(startAxis, endAxis int) *Tensor {
+	out := New("FLATTEN", t)
+	C.mlx_flatten(&out.ctx, t.ctx, C.int(startAxis), C.int(endAxis), DefaultStream().ctx)
+	return out
+}
+
+func (t *Tensor) FloorDivide(other *Tensor) *Tensor {
+	out := New("FLOOR_DIVIDE", t, other)
+	C.mlx_floor_divide(&out.ctx, t.ctx, other.ctx, DefaultStream().ctx)
+	return out
+}
+
+func (t *Tensor) GatherMM(other, lhs, rhs *Tensor, sorted bool) *Tensor {
+	if lhs == nil {
+		lhs = New("")
+	}
+	if rhs == nil {
+		rhs = New("")
+	}
+	out := New("GATHER_MM", t, other, lhs, rhs)
+	C.mlx_gather_mm(&out.ctx, t.ctx, other.ctx, lhs.ctx, rhs.ctx, C.bool(sorted), DefaultStream().ctx)
 	return out
 }
 
@@ -151,15 +187,42 @@ func (t *Tensor) Squeeze(axis int) *Tensor {
 	return out
 }
 
+func (t *Tensor) StackAxis(axis int, others ...*Tensor) *Tensor {
+	vectorData := make([]C.mlx_array, len(others)+1)
+	vectorData[0] = t.ctx
+	for i := range others {
+		vectorData[i+1] = others[i].ctx
+	}
+
+	vector := C.mlx_vector_array_new_data(unsafe.SliceData(vectorData), C.size_t(len(vectorData)))
+	defer C.mlx_vector_array_free(vector)
+
+	out := New("STACK_AXIS", append(others, t)...)
+	C.mlx_stack_axis(&out.ctx, vector, C.int(axis), DefaultStream().ctx)
+	return out
+}
+
 func (t *Tensor) Subtract(other *Tensor) *Tensor {
 	out := New("SUBTRACT", t, other)
 	C.mlx_subtract(&out.ctx, t.ctx, other.ctx, DefaultStream().ctx)
 	return out
 }
 
+func (t *Tensor) SumAxis(axis int, keepDims bool) *Tensor {
+	out := New("SUM_AXIS", t)
+	C.mlx_sum_axis(&out.ctx, t.ctx, C.int(axis), C.bool(keepDims), DefaultStream().ctx)
+	return out
+}
+
 func (t *Tensor) TakeAxis(indices *Tensor, axis int) *Tensor {
 	out := New("TAKE_AXIS", t, indices)
 	C.mlx_take_axis(&out.ctx, t.ctx, indices.ctx, C.int(axis), DefaultStream().ctx)
+	return out
+}
+
+func (t *Tensor) TakeAlongAxis(indices *Tensor, axis int) *Tensor {
+	out := New("TAKE_ALONG_AXIS", t, indices)
+	C.mlx_take_along_axis(&out.ctx, t.ctx, indices.ctx, C.int(axis), DefaultStream().ctx)
 	return out
 }
 
