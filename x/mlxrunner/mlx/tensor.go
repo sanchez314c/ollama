@@ -228,6 +228,13 @@ func (t Tensor) Floats() []float32 {
 	return floats
 }
 
+func (t Tensor) Save(name string) error {
+	cName := C.CString(name)
+	defer C.free(unsafe.Pointer(cName))
+	C.mlx_save(cName, t.ctx)
+	return nil
+}
+
 func Free(s ...*Tensor) (n int) {
 	now := time.Now()
 	defer func() {
