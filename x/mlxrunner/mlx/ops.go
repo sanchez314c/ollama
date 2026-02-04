@@ -75,7 +75,7 @@ func (t *Tensor) Concatenate(axis int, others ...*Tensor) *Tensor {
 	vector := C.mlx_vector_array_new_data(unsafe.SliceData(vectorData), C.size_t(len(vectorData)))
 	defer C.mlx_vector_array_free(vector)
 
-	out := New("CONCATENATE", t)
+	out := New("CONCATENATE", append(others, t)...)
 	C.mlx_concatenate_axis(&out.ctx, vector, C.int(axis), DefaultStream().ctx)
 	return out
 }

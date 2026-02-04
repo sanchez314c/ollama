@@ -78,7 +78,7 @@ type RMSNorm struct {
 	mlx.RMSNorm
 }
 
-func (m *RMSNorm) AfterLoad(*model.Root) error {
+func (m *RMSNorm) AfterLoad(*model.Root) ([]*mlx.Tensor, error) {
 	m.Weight.Set(m.Weight.Add(mlx.FromValue(1)))
-	return nil
+	return []*mlx.Tensor{}, nil
 }

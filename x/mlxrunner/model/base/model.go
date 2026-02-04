@@ -28,15 +28,15 @@ type TextGeneration interface {
 	Unembed(*mlx.Tensor) *mlx.Tensor
 }
 
-func Weights(m Model) (map[string]*mlx.Tensor, []func(*model.Root) error) {
+func Weights(m Model) (map[string]*mlx.Tensor, []func(*model.Root) ([]*mlx.Tensor, error)) {
 	mapping := make(map[string]*mlx.Tensor)
-	var afterLoadFuncs []func(*model.Root) error
+	var afterLoadFuncs []func(*model.Root) ([]*mlx.Tensor, error)
 	var fn func(v reflect.Value, tags []string)
 	fn = func(v reflect.Value, tags []string) {
 		t := v.Type()
 
 		if method := v.Addr().MethodByName("AfterLoad"); method.IsValid() {
-			var afterLoadFunc func(*model.Root) error
+			var afterLoadFunc func(*model.Root) ([]*mlx.Tensor, error)
 			reflect.ValueOf(&afterLoadFunc).Elem().Set(method)
 			afterLoadFuncs = append(afterLoadFuncs, afterLoadFunc)
 		}
