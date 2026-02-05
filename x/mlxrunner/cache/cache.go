@@ -22,7 +22,7 @@ type KVCache struct {
 }
 
 func NewKVCache() *KVCache {
-	return &KVCache{step: 256, keys: &mlx.Tensor{}, values: &mlx.Tensor{}}
+	return &KVCache{step: 256}
 }
 
 func (c *KVCache) Update(keys, values *mlx.Tensor) (*mlx.Tensor, *mlx.Tensor) {
@@ -31,12 +31,12 @@ func (c *KVCache) Update(keys, values *mlx.Tensor) (*mlx.Tensor, *mlx.Tensor) {
 	prev := c.offset
 
 	// Grow buffer if needed
-	if !c.keys.Valid() || (prev+L) > c.keys.Dim(2) {
+	if c.keys == nil || (prev+L) > c.keys.Dim(2) {
 		steps := (c.step + L - 1) / c.step
 		newKeys := mlx.Zeros(keys.DType(), B, H, steps*c.step, Dk)
 		newValues := mlx.Zeros(values.DType(), B, H, steps*c.step, Dv)
 
-		if c.keys.Valid() {
+		if c.keys != nil {
 			if prev%c.step != 0 {
 				c.keys.Set(c.keys.Slice(mlx.Slice(), mlx.Slice(), mlx.Slice(0, prev), mlx.Slice()))
 				c.values.Set(c.values.Slice(mlx.Slice(), mlx.Slice(), mlx.Slice(0, prev), mlx.Slice()))
@@ -103,7 +103,7 @@ func (c *RotatingKVCache) Update(keys, values *mlx.Tensor) (*mlx.Tensor, *mlx.Te
 
 func (c *RotatingKVCache) concat(keys, values *mlx.Tensor) (newK *mlx.Tensor, newV *mlx.Tensor) {
 	slog.Debug("(*RotatingKVCache).concat", "keys_dim", keys.Dims(), "values_dim", values.Dims(), "offset", c.offset, "idx", c.idx, "max_size", c.maxSize)
-	if !c.keys.Valid() {
+	if c.keys == nil {
 		c.keys, c.values = keys, values
 	} else {
 		if c.idx < c.keys.Dim(2) {
