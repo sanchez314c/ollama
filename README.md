@@ -1,5 +1,5 @@
 <div align="center">
-  <img alt="ollama legacy edition" width="240" src="assets/ollama-legacy-edition.png">
+  <img alt="ollama legacy edition" width="240" src="https://raw.githubusercontent.com/sanchez314c/ollama/legacy-gpu-think-support/assets/ollama-legacy-edition.png">
 </div>
 
 # Ollama - Legacy GPU + Think Parameter Fork
