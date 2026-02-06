@@ -243,6 +243,58 @@ This setup runs 30B+ parameter models that wouldn't fit on the 3090 alone, with 
 
 ---
 
+## Benchmarks: RTX 3090 + 2x Tesla K80 (46GB Total)
+
+Real-world inference benchmarks on the tested multi-GPU configuration above. All models use `main_gpu=0` (RTX 3090 handles compute, K80s provide weight storage).
+
+**Test prompt**: *"Explain what a neural network is in exactly 3 sentences."*
+
+| Rank | Model | Eval (tok/s) | Prompt (tok/s) | Size | Tier |
+|------|-------|-------------|----------------|------|------|
+| 1 | tinyllama:latest | **90.12** | 462.11 | 637 MB | S |
+| 2 | llama3.2:1b | **69.88** | 353.37 | 1.3 GB | S |
+| 3 | deepseek-coder-v2:16b | **48.15** | 100.81 | 8.9 GB | A |
+| 4 | qwen3:1.7b | **44.81** | 182.61 | 1.4 GB | A |
+| 5 | llama3.2:latest | **41.89** | 151.20 | 2.0 GB | A |
+| 6 | nemotron-3-nano:30b | **31.75** | 88.44 | 24 GB | A |
+| 7 | llama3:8b | **27.76** | 61.08 | 4.7 GB | B |
+| 8 | llama3.1:8b | **21.60** | 59.68 | 4.9 GB | B |
+| 9 | deepseek-r1:8b | **19.91** | 37.20 | 5.2 GB | B |
+| 10 | qwen2.5-coder:7b | **19.57** | 84.94 | 4.7 GB | B |
+| 11 | qwen3-vl:8b | **18.94** | 53.31 | 6.1 GB | B |
+| 12 | granite3.2:8b | **17.59** | 78.27 | 4.9 GB | B |
+| 13 | gemma3:12b-it-qat | **14.69** | 41.35 | 8.9 GB | C |
+| 14 | gemma3:12b | **13.77** | 39.33 | 8.1 GB | C |
+| 15 | codestral:latest | **10.97** | 14.13 | 12 GB | C |
+| 16 | qwen2.5-coder:14b | **10.57** | 47.57 | 9.0 GB | C |
+| 17 | gemma3:27b-it-qat | **8.41** | 18.31 | 18 GB | D |
+| 18 | qwen2.5-coder:32b | **5.13** | 17.96 | 19 GB | D |
+| 19 | qwen2.5:32b | **5.07** | 18.61 | 19 GB | D |
+| 20 | deepseek-r1:32b | **4.96** | 8.61 | 19 GB | D |
+| 21 | qwen3-vl:32b | **4.90** | 11.37 | 20 GB | D |
+
+**Tiers**: S = 60+ tok/s (instant) | A = 30-60 tok/s (fast) | B = 15-30 tok/s (good) | C = 10-15 tok/s (moderate) | D = <10 tok/s (quality over speed)
+
+### Standout Results
+
+- **nemotron-3-nano:30b** — 31.75 tok/s for a 30B model. Exceptional architecture efficiency across 46GB of mixed VRAM.
+- **deepseek-coder-v2:16b** — 48.15 tok/s, faster than most 7-8B models. Best speed/capability ratio for coding.
+- **deepseek-r1:32b** — Slow at 4.96 tok/s but the strongest reasoning model in the lineup. Only possible with legacy GPU VRAM expansion.
+
+### Recommended Models by Task
+
+| Task | Model | Speed |
+|------|-------|-------|
+| Quick tests/drafts | tinyllama:latest | 90 tok/s |
+| General chat | llama3.2:latest | 42 tok/s |
+| Coding (fast) | deepseek-coder-v2:16b | 48 tok/s |
+| Coding (quality) | qwen2.5-coder:32b | 5 tok/s |
+| Reasoning | deepseek-r1:32b | 5 tok/s |
+| Vision tasks | qwen3-vl:8b | 19 tok/s |
+| Large context | nemotron-3-nano:30b | 32 tok/s |
+
+---
+
 ## Building From Source
 
 ### Prerequisites
