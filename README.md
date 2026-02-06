@@ -133,6 +133,116 @@ Adds `gfx803` to the ROCm 6 build targets and the CMakeLists.txt filter regex.
 
 ---
 
+## Multi-GPU Setup: Modern + Legacy GPUs
+
+If you're mixing modern GPUs (RTX 3090, 4090, etc.) with legacy GPUs (K80, K40), the key insight is: **use the modern GPU for compute, legacy GPUs for weight storage only.** Without this, you'll hit `CUBLAS_STATUS_ARCH_MISMATCH` errors and model stalls.
+
+### The Problem
+
+When a model splits across GPUs with different compute capabilities (e.g., 8.6 + 3.7), CUDA tries to run compute kernels on all GPUs. The legacy GPU's slow/incompatible kernels cause crashes or stalls.
+
+### The Solution
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│                    MULTI-GPU ARCHITECTURE                     │
+│                                                              │
+│  CUDA_VISIBLE_DEVICES=2,0,1  (reorder: modern GPU = index 0) │
+│                                                              │
+│  ┌─────────────┐  ┌─────────────┐  ┌──────────────────────┐ │
+│  │   K80 #1    │  │   K80 #2    │  │     RTX 3090         │ │
+│  │   11 GB     │  │   11 GB     │  │      24 GB           │ │
+│  │  (index 1)  │  │  (index 2)  │  │    (index 0)         │ │
+│  ├─────────────┤  ├─────────────┤  ├──────────────────────┤ │
+│  │   WEIGHTS   │  │   WEIGHTS   │  │  WEIGHTS + COMPUTE   │ │
+│  │    ONLY     │  │    ONLY     │  │  (KV cache, scratch)  │ │
+│  └─────────────┘  └─────────────┘  └──────────────────────┘ │
+│                                                              │
+│  main_gpu=0 → All compute goes to the modern GPU (index 0)   │
+│  num_gpu=999 → All GPUs used for tensor weight storage        │
+└──────────────────────────────────────────────────────────────┘
+```
+
+### Step 1: Reorder GPUs in systemd Service
+
+Edit `/etc/systemd/system/ollama.service` to put the modern GPU first:
+
+```ini
+[Service]
+# GPU reorder: modern GPU's PCI index first, then legacy GPUs
+# Check nvidia-smi to find your GPU indices
+Environment="CUDA_VISIBLE_DEVICES=2,0,1"
+Environment="OLLAMA_SCHED_SPREAD=1"
+Environment="OLLAMA_NUM_GPU=999"
+Environment="OLLAMA_FLASH_ATTENTION=true"
+```
+
+Find your GPU indices with `nvidia-smi` — the number in the left column. Put the modern GPU's index first in `CUDA_VISIBLE_DEVICES`.
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl restart ollama
+```
+
+### Step 2: Set main_gpu=0 on Every Model
+
+This tells Ollama to send all compute (KV cache, scratch buffers, attention) to GPU index 0 (which is now your modern GPU after reordering):
+
+```bash
+# For a single model
+cat > /tmp/Modelfile << 'EOF'
+FROM your-model:tag
+PARAMETER main_gpu 0
+PARAMETER num_gpu 999
+EOF
+ollama create your-model:tag -f /tmp/Modelfile
+```
+
+Or batch-apply to all models:
+
+```bash
+for model in $(ollama list | tail -n +2 | awk '{print $1}'); do
+    MODELFILE=$(ollama show "$model" --modelfile 2>/dev/null)
+    if ! echo "$MODELFILE" | grep -q "main_gpu"; then
+        { echo "$MODELFILE"; echo "PARAMETER main_gpu 0"; echo "PARAMETER num_gpu 999"; } > /tmp/Modelfile.update
+        ollama create "$model" -f /tmp/Modelfile.update
+        echo "Updated: $model"
+    fi
+done
+```
+
+### Step 3: Context Window Guidelines
+
+KV cache lives on the main GPU. Larger context = more VRAM consumed on the modern GPU, leaving less for weights:
+
+| Model Size | Recommended num_ctx | Notes |
+|------------|-------------------|-------|
+| 1-3B | 65536 | Full context, fits on modern GPU alone |
+| 7-8B | 32768 | Good balance |
+| 12-16B | 24576-32768 | Moderate context |
+| 27-32B | 8192-16384 | KV cache is large, must share VRAM |
+
+### Why This Works
+
+1. `CUDA_VISIBLE_DEVICES=2,0,1` makes the RTX 3090 appear as GPU 0
+2. `main_gpu=0` routes ALL compute operations to GPU 0 (the 3090)
+3. `num_gpu=999` spreads tensor weights across all GPUs
+4. K80s only hold weight data — no CUBLAS operations, no stalls
+5. Result: ~46GB usable VRAM, modern GPU handles all the heavy lifting
+
+### Tested Configuration
+
+| GPU | Role | VRAM | Compute |
+|-----|------|------|---------|
+| RTX 3090 | Compute + Weights | 24 GB | 8.6 |
+| Tesla K80 #1 | Weights only | 11 GB | 3.7 |
+| Tesla K80 #2 | Weights only | 11 GB | 3.7 |
+| **Total** | | **46 GB** | |
+
+This setup runs 30B+ parameter models that wouldn't fit on the 3090 alone, with the K80s providing the extra VRAM needed for weight storage.
+
+---
+
 ## Building From Source
 
 ### Prerequisites
