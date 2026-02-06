@@ -365,3 +365,61 @@ All changes are in the `legacy-gpu-think-support` branch. The `feature/parameter
 ### Upstream Ollama
 
 This fork is based on [Ollama v0.15.4](https://github.com/ollama/ollama/releases/tag/v0.15.4). For the full Ollama documentation, model library, API reference, and community integrations, see the [upstream repository](https://github.com/ollama/ollama).
+
+---
+
+## Compatibility
+
+### Supported NVIDIA GPUs (CUDA Compute 3.5 / 3.7)
+
+This fork restores Ollama support for older NVIDIA CUDA GPUs that were dropped from official builds:
+
+| GPU | Compute Capability | VRAM | Notes |
+|-----|-------------------|------|-------|
+| Tesla K80 | 3.7 | 2x 12GB (24GB total) | Dual-GPU, commonly available on eBay/surplus |
+| Tesla K40 | 3.5 | 12GB | Single GPU, datacenter |
+| Tesla K20 | 3.5 | 5GB | Single GPU, datacenter |
+| Tesla K20X | 3.5 | 6GB | Single GPU, datacenter |
+| GeForce GTX 780 Ti | 3.5 | 3GB | Consumer desktop |
+| GeForce GTX 780 | 3.5 | 3GB | Consumer desktop |
+| GeForce GTX Titan | 3.5 | 6GB | Consumer desktop |
+
+These GPUs use CUDA Toolkit 11.x and require the `35-virtual` / `37-virtual` compute architectures enabled at build time — which this fork provides.
+
+### Supported AMD GPUs (ROCm gfx803 / Polaris)
+
+This fork restores Ollama support for AMD Polaris GPUs excluded from official ROCm builds:
+
+| GPU | Architecture | VRAM | Notes |
+|-----|-------------|------|-------|
+| Radeon RX 580 | gfx803 | 4/8GB | Most common Polaris card |
+| Radeon RX 570 | gfx803 | 4/8GB | Budget Polaris |
+| Radeon RX 480 | gfx803 | 4/8GB | First-gen Polaris |
+| Radeon RX 470 | gfx803 | 4/8GB | First-gen Polaris budget |
+| Radeon Pro WX 7100 | gfx803 | 8GB | Workstation Polaris |
+
+These GPUs require ROCm 6 with the `gfx803` target enabled — which this fork provides.
+
+### Tested Multi-GPU Combinations
+
+| Setup | Total VRAM | Max Model Size | Notes |
+|-------|-----------|---------------|-------|
+| RTX 3090 + 2x K80 | 46 GB | 32B+ | Modern compute + legacy storage |
+| RTX 4090 + 2x K80 | 48 GB | 32B+ | Modern compute + legacy storage |
+| RTX 3090 + K40 | 36 GB | 27B+ | Modern compute + legacy storage |
+| Single K80 | 11 GB | 7-8B | Legacy-only, slower inference |
+| RX 580 8GB | 8 GB | 7B | AMD Polaris, ROCm 6 required |
+
+### Common Search Terms
+
+If you found this page searching for any of the following, you're in the right place:
+
+- **Ollama Tesla K80** / Ollama CUDA compute 3.7 / Ollama CUDA 3.5
+- **Ollama RX 580** / Ollama RX 570 / Ollama RX 480 / Ollama gfx803 / Ollama Polaris
+- **Ollama legacy GPU** / Ollama old GPU / Ollama unsupported GPU
+- **Ollama disable thinking** / Ollama turn off thinking / Ollama think parameter
+- **Ollama multi-GPU** / Ollama mixed GPU / Ollama K80 + RTX 3090
+- **Ollama CUBLAS_STATUS_ARCH_MISMATCH** / Ollama GPU not detected
+- **Ollama Open WebUI thinking** / Ollama Modelfile think false
+- **CUDA compute capability 3.5** / CUDA compute capability 3.7 / Ollama CUDA 11
+- **ROCm gfx803** / ROCm Polaris / AMD ROCm Ollama
