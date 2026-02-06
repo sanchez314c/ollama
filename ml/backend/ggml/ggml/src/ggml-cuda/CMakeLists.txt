@@ -26,7 +26,7 @@ if (CUDAToolkit_FOUND)
             set(CMAKE_CUDA_ARCHITECTURES "native")
         else()
             if (CUDAToolkit_VERSION VERSION_LESS "13")
-                list(APPEND CMAKE_CUDA_ARCHITECTURES 50-virtual 61-virtual 70-virtual)
+                list(APPEND CMAKE_CUDA_ARCHITECTURES 35-virtual 37-virtual 50-virtual 61-virtual 70-virtual)
             endif ()
 
             list(APPEND CMAKE_CUDA_ARCHITECTURES 75-virtual 80-virtual 86-real)
